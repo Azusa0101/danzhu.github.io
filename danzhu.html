@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹珠撞墙游戏</title>
+    <style>
+        /* 保持原有样式不变 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        body {
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 800px;
+            max-width: 100%;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        .tab-container {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        .tab.active {
+            border-bottom: 3px solid #3498db;
+            color: #3498db;
+            font-weight: bold;
+        }
+        .tab:hover:not(.active) {
+            background: #f8f9fa;
+        }
+        .content {
+            padding: 20px;
+            display: none;
+        }
+        .content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        #gameCanvas {
+            width: 100%;
+            height: 400px;
+            border: 2px solid #2c3e50;
+            border-radius: 4px;
+            background: #ecf0f1;
+            display: block;
+            margin: 0 auto;
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            font-size: 18px;
+        }
+        .difficulty-select {
+            margin: 15px 0;
+        }
+        .difficulty-btn {
+            padding: 8px 15px;
+            margin-right: 10px;
+            background: #95a5a6;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+        .difficulty-btn.active {
+            background: #27ae60;
+        }
+        .ranking-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+        .ranking-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .ranking-item:nth-child(1) {
+            background: #fff3cd;
+        }
+        .ranking-item:nth-child(2) {
+            background: #e2e3e5;
+        }
+        .ranking-item:nth-child(3) {
+            background: #d6b88f;
+        }
+        .empty-ranking {
+            color: #7f8c8d;
+            padding: 20px;
+            text-align: center;
+            border: 1px dashed #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .error-message {
+            color: #e74c3c;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .user-info {
+            text-align: right;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>弹珠撞墙游戏</h1>
+        </div>
+        <div class="tab-container">
+            <div class="tab active" data-tab="login">登录</div>
+            <div class="tab" data-tab="register">注册</div>
+            <div class="tab" data-tab="game">开始游戏</div>
+            <div class="tab" data-tab="ranking">排行榜</div>
+        </div>
+
+        <!-- 登录面板 -->
+        <div class="content active" id="login">
+            <div class="form-group">
+                <label for="login-username">用户名</label>
+                <input type="text" id="login-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="login-password">密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码">
+            </div>
+            <div class="error-message" id="login-error"></div>
+            <button onclick="login()">登录</button>
+        </div>
+
+        <!-- 注册面板 -->
+        <div class="content" id="register">
+            <div class="form-group">
+                <label for="reg-username">用户名</label>
+                <input type="text" id="reg-username" placeholder="请设置用户名">
+            </div>
+            <div class="form-group">
+                <label for="reg-password">密码</label>
+                <input type="password" id="reg-password" placeholder="请设置密码">
+            </div>
+            <div class="form-group">
+                <label for="reg-confirm">确认密码</label>
+                <input type="password" id="reg-confirm" placeholder="请再次输入密码">
+            </div>
+            <div class="error-message" id="reg-error"></div>
+            <button onclick="register()">注册</button>
+        </div>
+
+        <!-- 游戏面板 -->
+        <div class="content" id="game">
+            <div class="user-info" id="game-user"></div>
+            <div class="difficulty-select">
+                <button class="difficulty-btn active" onclick="setDifficulty(1)">简单</button>
+                <button class="difficulty-btn" onclick="setDifficulty(2)">中等</button>
+                <button class="difficulty-btn" onclick="setDifficulty(3)">困难</button>
+            </div>
+            <div class="game-info">
+                <div>关卡: <span id="current-level">1</span></div>
+                <div>时间: <span id="game-time">00:00</span></div>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+            <button onclick="startGame()" style="margin-top: 15px;">开始游戏</button>
+            <button onclick="logout()" style="margin-top: 10px; background: #e74c3c;">退出登录</button>
+        </div>
+
+        <!-- 排行榜面板 -->
+        <div class="content" id="ranking">
+            <h2>全局排行榜</h2>
+            <div id="global-ranking-container">
+                <ul class="ranking-list" id="global-ranking"></ul>
+            </div>
+            <h3 style="margin-top: 20px;">我的成绩</h3>
+            <div id="my-ranking-container">
+                <ul class="ranking-list" id="my-ranking"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let currentDifficulty = 1;
+        let currentLevel = 1;
+        let gameTimer = null;
+        let gameTime = 0;
+        let isPlaying = false;
+
+        // 画布相关
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let ball = { x: 400, y: 200, radius: 10, dx: 4, dy: 4, color: '#e74c3c' };
+        let paddle = { x: 360, y: 380, width: 80, height: 10, color: '#2c3e50' };
+
+        // 页面加载后初始化
+        window.addEventListener('load', () => {
+            canvas.width = 750;
+            canvas.height = 400;
+            drawGame();
+        });
+
+        // 页面切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const tabId = tab.getAttribute('data-tab');
+                document.querySelectorAll('.content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabId).classList.add('active');
+
+                if (tabId === 'ranking') {
+                    loadRanking();
+                }
+            });
+        });
+
+        // 注册功能
+        function register() {
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirm = document.getElementById('reg-confirm').value;
+            const errorEl = document.getElementById('reg-error');
+
+            if (!username || !password) {
+                errorEl.textContent = '用户名和密码不能为空';
+                return;
+            }
+            if (password !== confirm) {
+                errorEl.textContent = '两次密码输入不一致';
+                return;
+            }
+            if (localStorage.getItem(`user_${username}`)) {
+                errorEl.textContent = '该用户名已被注册';
+                return;
+            }
+
+            // 注册时强制初始化scores数组
+            const userData = {
+                username,
+                password,
+                scores: []
+            };
+            localStorage.setItem(`user_${username}`, JSON.stringify(userData));
+            
+            // 确保用户列表正确存储
+            let allUsers = JSON.parse(localStorage.getItem('all_users') || '[]');
+            if (!allUsers.includes(username)) {
+                allUsers.push(username);
+                localStorage.setItem('all_users', JSON.stringify(allUsers));
+            }
+
+            errorEl.textContent = '';
+            alert('注册成功！请登录');
+            document.querySelectorAll('.tab')[0].click();
+        }
+
+        // 登录功能
+        function login() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            
+            // 读取用户数据并强制初始化scores
+            let userData = JSON.parse(localStorage.getItem(`user_${username}`) || '{"scores":[]}');
+            if (!userData || userData.password !== password) {
+                errorEl.textContent = '用户名或密码错误';
+                return;
+            }
+            
+            // 确保scores是数组（修复数据格式错误）
+            if (!Array.isArray(userData.scores)) {
+                userData.scores = [];
+            }
+
+            currentUser = userData;
+            errorEl.textContent = '';
+            document.getElementById('game-user').textContent = `当前用户: ${currentUser.username}`;
+            document.querySelectorAll('.tab')[2].click();
+        }
+
+        // 退出登录
+        function logout() {
+            currentUser = null;
+            currentLevel = 1;
+            gameTime = 0;
+            clearInterval(gameTimer);
+            document.getElementById('game-time').textContent = '00:00';
+            document.getElementById('current-level').textContent = '1';
+            document.querySelectorAll('.tab')[0].click();
+        }
+
+        // 设置难度
+        function setDifficulty(level) {
+            currentDifficulty = level;
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            initGame();
+            drawGame();
+        }
+
+        // 初始化游戏
+        function initGame() {
+            const speedMap = [0, 4, 6, 8];
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = speedMap[currentDifficulty] * (Math.random() > 0.5 ? 1 : -1);
+            ball.dy = speedMap[currentDifficulty] * (Math.random() > 0.5 ? 1 : -1);
+            paddle.x = canvas.width / 2 - paddle.width / 2;
+            paddle.y = canvas.height - paddle.height - 5;
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (isPlaying) return;
+            isPlaying = true;
+            clearInterval(gameTimer);
+            gameTime = 0;
+            updateTimeDisplay();
+            gameTimer = setInterval(() => {
+                gameTime++;
+                updateTimeDisplay();
+            }, 1000);
+            gameLoop();
+        }
+
+        // 更新时间显示
+        function updateTimeDisplay() {
+            const minutes = Math.floor(gameTime / 60).toString().padStart(2, '0');
+            const seconds = (gameTime % 60).toString().padStart(2, '0');
+            document.getElementById('game-time').textContent = `${minutes}:${seconds}`;
+        }
+
+        // 游戏循环
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGame();
+            moveBall();
+            checkCollisions();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 绘制游戏元素
+        function drawGame() {
+            // 绘制球
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.closePath();
+
+            // 绘制挡板
+            ctx.fillStyle = paddle.color;
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+            // 绘制关卡文字
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '20px Arial';
+            ctx.fillText(`关卡 ${currentLevel}`, 10, 30);
+        }
+
+        // 移动球
+        function moveBall() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+        }
+
+        // 移动挡板（鼠标控制）
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            paddle.x = e.clientX - rect.left - paddle.width/2;
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
+        });
+
+        // 碰撞检测
+        function checkCollisions() {
+            // 左右墙碰撞
+            if (ball.x - ball.radius < 0 || ball.x + ball.radius > canvas.width) {
+                ball.dx = -ball.dx;
+            }
+
+            // 上墙碰撞
+            if (ball.y - ball.radius < 0) {
+                ball.dy = -ball.dy;
+            }
+
+            // 下墙碰撞（游戏结束，强制保存记录）
+            if (ball.y + ball.radius > canvas.height) {
+                endGame(false);
+                return;
+            }
+
+            // 挡板碰撞
+            if (
+                ball.y + ball.radius > paddle.y &&
+                ball.y + ball.radius < paddle.y + paddle.height &&
+                ball.x > paddle.x &&
+                ball.x < paddle.x + paddle.width
+            ) {
+                ball.dy = -ball.dy;
+                const hitCount = Math.floor(Math.abs(ball.dy) / currentDifficulty) + 1;
+                if (hitCount % 10 === 0) {
+                    levelUp();
+                }
+            }
+        }
+
+        // 关卡升级
+        function levelUp() {
+            currentLevel++;
+            document.getElementById('current-level').textContent = currentLevel;
+            ball.dx *= 1.1;
+            ball.dy *= 1.1;
+            alert(`恭喜！升级到关卡 ${currentLevel}`);
+        }
+
+        // 游戏结束（核心修复：确保成绩保存）
+        function endGame(isWin) {
+            isPlaying = false;
+            clearInterval(gameTimer);
+
+            // 无论输赢，只要登录了就保存记录
+            if (currentUser) {
+                const score = {
+                    level: currentLevel,
+                    time: gameTime,
+                    difficulty: currentDifficulty,
+                    date: new Date().toLocaleString()
+                };
+
+                // 强制确保scores是数组
+                if (!Array.isArray(currentUser.scores)) {
+                    currentUser.scores = [];
+                }
+
+                // 添加新成绩并保存到本地存储
+                currentUser.scores.push(score);
+                localStorage.setItem(`user_${currentUser.username}`, JSON.stringify(currentUser));
+                
+                // 提示用户记录已保存
+                alert(`游戏结束！关卡: ${currentLevel}, 用时: ${formatTime(gameTime)}\n成绩已保存到排行榜`);
+            } else {
+                alert(`游戏结束！关卡: ${currentLevel}, 用时: ${formatTime(gameTime)}\n请登录以保存成绩`);
+            }
+
+            // 重置游戏
+            currentLevel = 1;
+            gameTime = 0;
+            document.getElementById('game-time').textContent = '00:00';
+            document.getElementById('current-level').textContent = '1';
+            initGame();
+            drawGame();
+        }
+
+        // 格式化时间
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}分${secs}秒`;
+        }
+
+        // 加载排行榜
+        function loadRanking() {
+            const globalContainer = document.getElementById('global-ranking-container');
+            const myContainer = document.getElementById('my-ranking-container');
+            const globalEl = document.getElementById('global-ranking');
+            const myEl = document.getElementById('my-ranking');
+            
+            globalEl.innerHTML = '';
+            myEl.innerHTML = '';
+
+            // 获取所有用户
+            let allUsers = JSON.parse(localStorage.getItem('all_users') || '[]');
+            const globalScores = [];
+            let myScores = [];
+
+            // 收集全局成绩
+            allUsers.forEach(username => {
+                try {
+                    const user = JSON.parse(localStorage.getItem(`user_${username}`) || '{"scores":[]}');
+                    if (user && Array.isArray(user.scores) && user.scores.length > 0) {
+                        const bestScore = user.scores.sort((a, b) => {
+                            if (a.level !== b.level) return b.level - a.level;
+                            return a.time - b.time;
+                        })[0];
+                        globalScores.push({ ...bestScore, username });
+                    }
+                } catch (e) {
+                    console.log(`用户${username}数据错误，已跳过`);
+                }
+            });
+
+            // 收集当前用户成绩
+            if (currentUser && Array.isArray(currentUser.scores)) {
+                myScores = currentUser.scores.sort((a, b) => {
+                    if (a.level !== b.level) return b.level - a.level;
+                    return a.time - b.time;
+                });
+            }
+
+            // 渲染全局排行榜
+            if (globalScores.length === 0) {
+                globalContainer.innerHTML = '<div class="empty-ranking">暂无游戏记录，快来成为第一个上榜的玩家吧！</div>';
+            } else {
+                globalScores.sort((a, b) => {
+                    if (a.level !== b.level) return b.level - a.level;
+                    return a.time - b.time;
+                }).slice(0, 10).forEach((score, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'ranking-item';
+                    li.innerHTML = `
+                        <span>${index + 1}. ${score.username}</span>
+                        <span>关卡: ${score.level} | 用时: ${formatTime(score.time)} | 难度: ${getDifficultyText(score.difficulty)}</span>
+                    `;
+                    globalEl.appendChild(li);
+                });
+                globalContainer.innerHTML = '';
+                globalContainer.appendChild(globalEl);
+            }
+
+            // 渲染我的成绩
+            if (!currentUser) {
+                myContainer.innerHTML = '<div class="empty-ranking">请先登录以查看您的成绩</div>';
+            } else if (myScores.length === 0) {
+                myContainer.innerHTML = '<div class="empty-ranking">您还没有游戏记录，快去玩一局吧！</div>';
+            } else {
+                myScores.forEach((score, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'ranking-item';
+                    li.innerHTML = `
+                        <span>${index + 1}. ${score.date}</span>
+                        <span>关卡: ${score.level} | 用时: ${formatTime(score.time)} | 难度: ${getDifficultyText(score.difficulty)}</span>
+                    `;
+                    myEl.appendChild(li);
+                });
+                myContainer.innerHTML = '';
+                myContainer.appendChild(myEl);
+            }
+        }
+
+        // 获取难度文字
+        function getDifficultyText(level) {
+            const texts = ['', '简单', '中等', '困难'];
+            return texts[level] || '简单';
+        }
+    </script>
+</body>
+</html>
